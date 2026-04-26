@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="KPI Management Dashboard — Real-time service and parts analytics">
+    <title>KPI Management Dashboard</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="logo">K</div>
+        <div><h1>KPI Dashboard</h1><span>Management Console</span></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">
+            <div class="nav-section-title">Overview</div>
+            <a class="nav-item active" data-section="dashboard" href="#">
+                <span class="icon">📊</span> Dashboard
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">KPI Categories</div>
+            <a class="nav-item" data-section="operations" href="#">
+                <span class="icon">⚙️</span> Operations
+            </a>
+            <a class="nav-item" data-section="sales" href="#">
+                <span class="icon">💰</span> Sales & Revenue
+            </a>
+            <a class="nav-item" data-section="financial" href="#">
+                <span class="icon">📈</span> Financial Ratios
+            </a>
+            <a class="nav-item" data-section="hr" href="#">
+                <span class="icon">👥</span> Team / HR
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Data Sources</div>
+            <div class="nav-item" style="cursor:default;font-size:11px;color:var(--text-muted)">
+                <span class="icon">🔧</span> 4 Service DBs
+            </div>
+            <div class="nav-item" style="cursor:default;font-size:11px;color:var(--text-muted)">
+                <span class="icon">🔩</span> 5 Parts DBs
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main-content">
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="menu-toggle" aria-label="Menu">☰</button>
+            <div>
+                <h2>Dashboard Overview</h2>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="period-selector">
+                <button class="period-btn" data-period="today">Today</button>
+                <button class="period-btn" data-period="thisWeek">Week</button>
+                <button class="period-btn" data-period="thisMonth">Month</button>
+                <button class="period-btn active" data-period="thisYear">Year</button>
+                <button class="period-btn" data-period="ytd">YTD</button>
+                <button class="period-btn" data-period="thisQuarter">Qtr</button>
+                <button class="period-btn" data-period="lastMonth">Last Mo</button>
+                <button class="period-btn" data-period="lastYear">Last Yr</button>
+                <button class="period-btn" data-period="lastYearQuarter">LY Qtr</button>
+                <button class="period-btn" data-period="lastYearYTD">LY YTD</button>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" title="Refresh">⟳</button>
+            <div class="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting…</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+
+        <!-- ==================== DASHBOARD OVERVIEW ==================== -->
+        <div class="kpi-section active" id="section-dashboard">
+            <!-- Hero Cards -->
+            <div class="hero-grid">
+                <div class="hero-card revenue kpi-card loading" id="hero-revenue">
+                    <div class="hero-label">💰 Total Revenue</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card profit kpi-card loading" id="hero-profit">
+                    <div class="hero-label">📈 Gross Profit</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card jobs kpi-card loading" id="hero-jobs">
+                    <div class="hero-label">🔧 Jobs Created</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card employees kpi-card loading" id="hero-employees">
+                    <div class="hero-label">👥 Employees</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+            </div>
+
+            <!-- Quick KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="dash-open-jobs">
+                    <div class="card-header"><div class="card-icon blue">📂</div></div>
+                    <div class="card-label">Jobs Open</div>
+                    <div class="card-value">—</div>
+                    <div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="dash-appointments">
+                    <div class="card-header"><div class="card-icon purple">📅</div></div>
+                    <div class="card-label">Appointments</div>
+                    <div class="card-value">—</div>
+                    <div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="dash-completion">
+                    <div class="card-header"><div class="card-icon green">✅</div></div>
+                    <div class="card-label">Job Completion Rate</div>
+                    <div class="card-value">—</div>
+                    <div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="dash-cancellation">
+                    <div class="card-header"><div class="card-icon red">❌</div></div>
+                    <div class="card-label">Cancellation Rate</div>
+                    <div class="card-value">—</div>
+                    <div class="card-sub"></div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <h4><span class="icon">📈</span> Revenue Trend</h4>
+                    <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h4><span class="icon">🎯</span> Revenue by Customer Type</h4>
+                    <div class="chart-container"><canvas id="customerTypeChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== OPERATIONS ==================== -->
+        <div class="kpi-section" id="section-operations">
+            <div class="section-header"><h3><span class="icon">⚙️</span> Operations KPIs</h3></div>
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="op-appointments">
+                    <div class="card-header"><div class="card-icon purple">📅</div></div>
+                    <div class="card-label">Appointment Requests</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-proposals">
+                    <div class="card-header"><div class="card-icon blue">📝</div></div>
+                    <div class="card-label">Proposals Created</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-proposals-out">
+                    <div class="card-header"><div class="card-icon amber">📋</div></div>
+                    <div class="card-label">Proposals Outstanding</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-created">
+                    <div class="card-header"><div class="card-icon blue">🔧</div></div>
+                    <div class="card-label">Jobs Created</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-scheduled">
+                    <div class="card-header"><div class="card-icon teal">📆</div></div>
+                    <div class="card-label">Jobs Scheduled</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-completed">
+                    <div class="card-header"><div class="card-icon green">✅</div></div>
+                    <div class="card-label">Jobs Completed</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-worked">
+                    <div class="card-header"><div class="card-icon purple">🛠️</div></div>
+                    <div class="card-label">Jobs Worked</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-open">
+                    <div class="card-header"><div class="card-icon amber">📂</div></div>
+                    <div class="card-label">Jobs Open</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-completion-rate">
+                    <div class="card-header"><div class="card-icon green">🎯</div></div>
+                    <div class="card-label">Job Completion Rate</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-booking-time">
+                    <div class="card-header"><div class="card-icon teal">⏱️</div></div>
+                    <div class="card-label">Booking Time Completion</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-per-tech">
+                    <div class="card-header"><div class="card-icon blue">👨‍🔧</div></div>
+                    <div class="card-label">Jobs per Tech</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-cancellation">
+                    <div class="card-header"><div class="card-icon red">❌</div></div>
+                    <div class="card-label">Cancellation Rate</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== SALES ==================== -->
+        <div class="kpi-section" id="section-sales">
+            <div class="section-header"><h3><span class="icon">💰</span> Sales & Revenue KPIs</h3></div>
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="sales-total-rev">
+                    <div class="card-header"><div class="card-icon blue">💰</div></div>
+                    <div class="card-label">Total Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-svc-rev">
+                    <div class="card-header"><div class="card-icon teal">🔧</div></div>
+                    <div class="card-label">Service Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-parts-rev">
+                    <div class="card-header"><div class="card-icon purple">🔩</div></div>
+                    <div class="card-label">Parts Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-mtd">
+                    <div class="card-header"><div class="card-icon green">📅</div></div>
+                    <div class="card-label">Month to Date Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-last-month">
+                    <div class="card-header"><div class="card-icon amber">📆</div></div>
+                    <div class="card-label">Last Month's Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-expense">
+                    <div class="card-header"><div class="card-icon red">💸</div></div>
+                    <div class="card-label">Total Expense</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-cancel-rate">
+                    <div class="card-header"><div class="card-icon red">❌</div></div>
+                    <div class="card-label">Cancellation Rate</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-avg-quote">
+                    <div class="card-header"><div class="card-icon purple">📝</div></div>
+                    <div class="card-label">Average Quote Value</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-rev-per-tech">
+                    <div class="card-header"><div class="card-icon teal">👨‍🔧</div></div>
+                    <div class="card-label">Revenue per Tech</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="sales-yoy">
+                    <div class="card-header"><div class="card-icon green">📈</div></div>
+                    <div class="card-label">Revenue Growth (YoY)</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Monthly Revenue Trend</h4>
+                    <div class="chart-container"><canvas id="salesTrendChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== FINANCIAL ==================== -->
+        <div class="kpi-section" id="section-financial">
+            <div class="section-header"><h3><span class="icon">📈</span> Financial Ratios</h3></div>
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="fin-total-rev">
+                    <div class="card-header"><div class="card-icon blue">💰</div></div>
+                    <div class="card-label">Total Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-mtd">
+                    <div class="card-header"><div class="card-icon teal">📅</div></div>
+                    <div class="card-label">Month to Date Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-last-month">
+                    <div class="card-header"><div class="card-icon amber">📆</div></div>
+                    <div class="card-label">Last Month's Revenue</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-cogs">
+                    <div class="card-header"><div class="card-icon red">📦</div></div>
+                    <div class="card-label">Cost of Goods</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-gross-profit">
+                    <div class="card-header"><div class="card-icon green">💵</div></div>
+                    <div class="card-label">Gross Profit</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-gross-margin">
+                    <div class="card-header"><div class="card-icon green">📊</div></div>
+                    <div class="card-label">Gross Profit Margin</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-net-profit">
+                    <div class="card-header"><div class="card-icon purple">💎</div></div>
+                    <div class="card-label">Net Profit</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-net-margin">
+                    <div class="card-header"><div class="card-icon purple">📉</div></div>
+                    <div class="card-label">Net Profit Margin</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-profit-dollar">
+                    <div class="card-header"><div class="card-icon blue">💲</div></div>
+                    <div class="card-label">Profit Margin in ৳</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-profit-pct">
+                    <div class="card-header"><div class="card-icon blue">📊</div></div>
+                    <div class="card-label">Profit Margin %</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-cash">
+                    <div class="card-header"><div class="card-icon green">🏦</div></div>
+                    <div class="card-label">Cash Balance</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-ar">
+                    <div class="card-header"><div class="card-icon amber">📥</div></div>
+                    <div class="card-label">Accounts Receivable</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-ap">
+                    <div class="card-header"><div class="card-icon red">📤</div></div>
+                    <div class="card-label">Accounts Payable Outstanding</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-rev-emp">
+                    <div class="card-header"><div class="card-icon teal">👤</div></div>
+                    <div class="card-label">Revenue per Employee</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-quick-ratio">
+                    <div class="card-header"><div class="card-icon purple">⚡</div></div>
+                    <div class="card-label">Quick Ratio</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-labor-pct">
+                    <div class="card-header"><div class="card-icon pink">🔨</div></div>
+                    <div class="card-label">Labor Cost Percentage</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-avg-job">
+                    <div class="card-header"><div class="card-icon blue">📐</div></div>
+                    <div class="card-label">Average Job Value</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="fin-yoy">
+                    <div class="card-header"><div class="card-icon green">📈</div></div>
+                    <div class="card-label">Revenue Growth (YoY)</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TEAM / HR ==================== -->
+        <div class="kpi-section" id="section-hr">
+            <div class="section-header"><h3><span class="icon">👥</span> Team / HR</h3></div>
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="hr-total">
+                    <div class="card-header"><div class="card-icon blue">👥</div></div>
+                    <div class="card-label">Total Employees</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="hr-service">
+                    <div class="card-header"><div class="card-icon teal">🔧</div></div>
+                    <div class="card-label">Service Employees</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="hr-parts">
+                    <div class="card-header"><div class="card-icon purple">🔩</div></div>
+                    <div class="card-label">Parts Employees</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Employee Count by Role</h4>
+                    <div class="chart-container"><canvas id="roleChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h4><span class="icon">🏢</span> Employees by Branch</h4>
+                    <table class="data-table">
+                        <thead><tr><th>Branch</th><th>Total</th><th>Top Roles</th></tr></thead>
+                        <tbody id="branchTableBody"><tr><td colspan="3" style="color:var(--text-muted)">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="/js/charts.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
