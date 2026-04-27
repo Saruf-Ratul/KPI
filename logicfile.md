@@ -4,20 +4,23 @@ This document outlines the exact logic, calculations, and database tables used f
 
 ## Database Sources
 
-The dashboard aggregates data across 9 databases on the `192.168.2.10` server:
+The dashboard aggregates data across 10 databases:
 
-**Service Databases (4):**
+**Service Databases (4):** (`192.168.2.10`)
 - CTG_3sSale
 - SSS_3sSale
 - Uttara_3sSale
 - Tejgaon_3sSale
 
-**Parts Databases (5):**
+**Parts Databases (5):** (`192.168.2.10`)
 - CPD_CTG_SIMS
 - CPD_Tejgaon_SIMS
 - NS_dbWS_IMS
 - dbDemra_SIMS
 - dbUttara_SIMS
+
+**Accounts & General Ledger (1):** (`192.168.2.12`)
+- ServiceCenter_12
 
 ---
 
@@ -49,9 +52,12 @@ The dashboard aggregates data across 9 databases on the `192.168.2.10` server:
 | **Jobs Scheduled** | Count of jobs with work time entries | `tbJob`, `tbSchedule`, `tbStallWorkTime` | Service |
 | **Jobs Completed** | Count of jobs linked to a bill | `tbJob`, `tbBill` | Service |
 | **Jobs Worked** | Count of distinct jobs with time logged | `tbStallWorkTime`, `tbJob` | Service |
+| **Jobs Working** | Count of open jobs actively being worked on | `tbJob`, `tbStallWorkTime` | Service |
+| **Jobs Not Working** | Count of open jobs with no active work logs | `tbJob`, `tbStallWorkTime` | Service |
 | **Jobs Open** | Count of non-cancelled jobs without a bill | `tbJob`, `tbBill` | Service |
 | **Job Completion Rate** | `(Jobs Completed / Jobs Created) * 100` | Computed | Computed |
-| **Booking Time Comp.** | Actual completion time vs Promised time | `tbJob`, `H_Invoice_JOB` *(Legacy table used for historical comparison logic if available)* | Service |
+| **Bay-Wise Income** | Sum of payments grouped by bay number | `tbPayments`, `tbJob` (`Bay_No`) | Service |
+| **Booking Time Comp.** | Actual completion time vs Promised time | `tbJob`, `H_Invoice_JOB` *(Legacy)* | Service |
 | **Jobs per Tech** | `Total Jobs Worked / Total Technicians` | `tbStallWorkTime`, `tbJob` | Service |
 | **Cancellation Rate** | `(Cancelled Jobs / Total Jobs Including Cancelled) * 100` | `tbJob` | Service |
 
@@ -61,9 +67,9 @@ The dashboard aggregates data across 9 databases on the `192.168.2.10` server:
 
 | KPI | Calculation Logic | Source Tables | Source Databases |
 | :--- | :--- | :--- | :--- |
-| **Total Revenue** | Sum of payments (Service) + Sum of invoiced items (Parts) | Service: `tbPayments`<br>Parts: `tbFTrans_Dt`, `tbFTRans_MR` (RTrType=2) | All (Service & Parts) |
+| **Total Revenue** | Sum of payments (Service) + Sum of counter sales (Parts) | Service: `tbPayments`<br>Parts: `tbFTrans_Dt`, `tbFTRans_MR` (RTrType=1, JobNO='') | All (Service & Parts) |
 | **Service Revenue** | Sum of payments (`mPayment_Amt`) | `tbPayments` | Service |
-| **Parts Revenue** | Sum of invoiced items (`Rate * R_InvQty`) | `tbFTrans_Dt`, `tbFTRans_MR` (RTrType=2) | Parts |
+| **Parts Revenue** | Sum of direct counter sales (`Rate * R_InvQty`) | `tbFTrans_Dt`, `tbFTRans_MR` (RTrType=1, JobNO='') | Parts |
 | **Month to Date Rev.** | Total Revenue for current month | Same as Total Revenue | All (Service & Parts) |
 | **Last Month's Rev.** | Total Revenue for previous month | Same as Total Revenue | All (Service & Parts) |
 | **Total Expense** | Service Purchases + Parts Purchases | Service: `tbPurchaseDetail`, `tbPurchase`<br>Parts: `tbFTrans_Dt`, `tbFTRans_MR` (RTrType=1) | All (Service & Parts) |
@@ -81,25 +87,31 @@ The dashboard aggregates data across 9 databases on the `192.168.2.10` server:
 | **Total Revenue** | Service Revenue + Parts Revenue | Same as above | All (Service & Parts) |
 | **Month to Date Rev.** | Total Revenue for current month | Same as above | All (Service & Parts) |
 | **Last Month's Rev.** | Total Revenue for previous month | Same as above | All (Service & Parts) |
-| **Cost of Goods** | Service COGS + Parts COGS | Service: `tbPurchaseDetail` (`mP_Price * nQty`)<br>Parts: `tbFTrans_Dt` (`WAvgPrice * R_InvQty`) | All (Service & Parts) |
+| **Cost of Goods** | Service COGS + Parts COGS | Service: `tbPurchaseDetail`<br>Parts: `tbFTrans_Dt` (`WAvgPrice * R_InvQty`) | All (Service & Parts) |
 | **Gross Profit** | `Total Revenue - Cost of Goods` | Computed | Computed |
 | **Gross Profit Margin** | `(Gross Profit / Total Revenue) * 100` | Computed | Computed |
 | **Net Profit** | `Total Revenue - Cost of Goods - Total Expense` | Computed | Computed |
 | **Net Profit Margin** | `(Net Profit / Total Revenue) * 100` | Computed | Computed |
-| **Profit Margin in ৳** | Same as Gross Profit | Computed | Computed |
-| **Profit Margin %** | Same as Gross Profit Margin | Computed | Computed |
 | **Cash Balance** | Sum of payments where mode is 'Cash' | `tbPayments` | Service |
 | **Accounts Receivable** | Sum of customer due amounts | Service: `tbCustomer` (`mDue`)<br>Parts: `tbLedger` (`Balance` > 0) | All (Service & Parts) |
 | **Accounts Payable** | Sum of negative balances | Parts: `tbLedger` (`Balance` < 0) | Parts |
-| **Revenue per Employee**| `Total Revenue / Total Employees` | Computed | Computed |
 | **Quick Ratio** | `(Cash Balance + Accounts Receivable) / Accounts Payable`| Computed | Computed |
-| **Labor Cost Percentage**| `(Labor Revenue / Total Revenue) * 100` | `tbService_Details` (`Rate`), `tbJob` | Service |
-| **Average Job Value** | `Total Service Revenue / Distinct Jobs with Payments` | `tbPayments` | Service |
-| **Revenue Growth(YoY)** | `((This Year Rev - Last Year Rev) / Last Year Rev) * 100` | Computed | Computed |
 
 ---
 
-## 5. Team / HR
+## 5. Accounts & General Ledger
+
+| KPI | Calculation Logic | Source Tables | Source Databases |
+| :--- | :--- | :--- | :--- |
+| **Bank Transactions Total** | Sum of double-entry bank transactions (Amount > 0) | `JournalDetail`, `JournalMaster` (`PayMode <> 'C'`) | Accounts |
+| **Bank Transaction Count** | Count of bank journal master entries | `JournalMaster` (`PayMode <> 'C'`) | Accounts |
+| **Journal Entries Total** | Count of all journal entries | `JournalMaster` | Accounts |
+| **Active Ledger Accounts** | Count of active ledger accounts | `AccountList` | Accounts |
+| **Latest Journal Entries** | Top 5 recent journal records | `JournalMaster` | Accounts |
+
+---
+
+## 6. Team / HR
 
 | KPI | Calculation Logic | Source Tables | Source Databases |
 | :--- | :--- | :--- | :--- |
@@ -112,5 +124,6 @@ The dashboard aggregates data across 9 databases on the `192.168.2.10` server:
 
 ## Technical Notes & Limitations
 - **Job Completion Logic:** A job is considered "completed" if an entry exists in `tbBill` matching its `vJob_No`. The older `H_Invoice_JOB` table is no longer actively used for current billing records.
-- **Cross-Database Aggregation:** When a KPI involves both Service and Parts, the Node.js backend queries all 9 databases in parallel and sums the results in memory.
-- **Dates and Periods:** Date filtering logic uses standard SQL Server `DATEPART`, `GETDATE()`, and similar functions to aggregate dynamically based on the requested period (e.g., "This Year", "Last Month").
+- **Parts Double Counting Prevention:** Parts revenue calculation strictly filters for `RTrType = 1` and `JobNO = ''` to prevent counting parts issued to Service Bay jobs (which are billed via `tbPayments`).
+- **Cross-Database Aggregation:** When a KPI involves both Service and Parts, the Node.js backend queries all databases in parallel and sums the results in memory.
+- **Double Entry Accounting:** Bank transactions calculate `SUM(Amount) WHERE Amount > 0` to circumvent double-entry ledgers zeroing out.

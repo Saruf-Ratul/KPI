@@ -122,6 +122,31 @@ function jobsOpen(period) {
             AND NOT EXISTS (SELECT 1 FROM tbBill b WHERE b.vJob_No = j.vJob_No)`;
 }
 
+function workingJobs(period) {
+    return `SELECT COUNT(*) as total FROM tbJob j 
+            WHERE j.Cancelled = 0 
+            AND ${getDateFilter(period, 'j.dDate')}
+            AND NOT EXISTS (SELECT 1 FROM tbBill b WHERE b.vJob_No = j.vJob_No)
+            AND EXISTS (SELECT 1 FROM tbStallWorkTime sw WHERE sw.vJob_No = j.vJob_No)`;
+}
+
+function notWorkingJobs(period) {
+    return `SELECT COUNT(*) as total FROM tbJob j 
+            WHERE j.Cancelled = 0 
+            AND ${getDateFilter(period, 'j.dDate')}
+            AND NOT EXISTS (SELECT 1 FROM tbBill b WHERE b.vJob_No = j.vJob_No)
+            AND NOT EXISTS (SELECT 1 FROM tbStallWorkTime sw WHERE sw.vJob_No = j.vJob_No)`;
+}
+
+function bayWiseIncome(period) {
+    return `SELECT ISNULL(CAST(j.Bay_No AS VARCHAR), 'Unassigned') as bay, ISNULL(SUM(p.mPayment_Amt), 0) as total
+            FROM tbPayments p
+            INNER JOIN tbJob j ON p.vJob_No = j.vJob_No
+            WHERE ${getDateFilter(period, 'p.dDate')}
+            GROUP BY ISNULL(CAST(j.Bay_No AS VARCHAR), 'Unassigned')
+            ORDER BY total DESC`;
+}
+
 function jobsCancelled(period) {
     return `SELECT COUNT(*) as total FROM tbJob WHERE Cancelled = 1 AND ${getDateFilter(period, 'dDate')}`;
 }
@@ -281,6 +306,9 @@ module.exports = {
     jobsCompleted,
     jobsWorked,
     jobsOpen,
+    workingJobs,
+    notWorkingJobs,
+    bayWiseIncome,
     jobsCancelled,
     totalJobsIncCancelled,
     jobsPerTech,

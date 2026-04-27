@@ -38,7 +38,8 @@ router.get('/operations', async (req, res) => {
         const [
             appointments, proposals, proposalsOut,
             created, completed, worked, open, cancelled, totalInc,
-            jptResults, btcResults
+            working, notWorking,
+            jptResults, btcResults, bayIncomeResults
         ] = await Promise.all([
             sumServiceQuery(svcQ.appointmentRequests, period),
             sumServiceQuery(svcQ.proposalsCreated, period),
@@ -49,8 +50,11 @@ router.get('/operations', async (req, res) => {
             sumServiceQuery(svcQ.jobsOpen, period),
             sumServiceQuery(svcQ.jobsCancelled, period),
             sumServiceQuery(svcQ.totalJobsIncCancelled, period),
+            sumServiceQuery(svcQ.workingJobs, period),
+            sumServiceQuery(svcQ.notWorkingJobs, period),
             db.queryAllServiceDBs(svcQ.jobsPerTech(period)),
             db.queryAllServiceDBs(svcQ.bookingTimeCompletion(period)),
+            db.queryAllServiceDBs(svcQ.bayWiseIncome(period)),
         ]);
 
         // Aggregate jobs per tech
@@ -72,6 +76,21 @@ router.get('/operations', async (req, res) => {
             }
         }
 
+        // Aggregate bay income
+        const bayIncomeMap = {};
+        for (const [dbName, result] of Object.entries(bayIncomeResults)) {
+            if (result.recordset) {
+                for (const row of result.recordset) {
+                    const bay = row.bay || 'Unassigned';
+                    bayIncomeMap[bay] = (bayIncomeMap[bay] || 0) + (row.total || 0);
+                }
+            }
+        }
+        
+        const bayWiseIncome = Object.entries(bayIncomeMap)
+            .map(([bay, income]) => ({ bay, income }))
+            .sort((a, b) => b.income - a.income);
+
         const completionRate = created > 0 ? ((completed / created) * 100).toFixed(1) : 0;
         const cancellationRate = totalInc > 0 ? ((cancelled / totalInc) * 100).toFixed(1) : 0;
         const jobsPerTechRatio = totalTechs > 0 ? (totalJobs / totalTechs).toFixed(1) : 0;
@@ -88,6 +107,8 @@ router.get('/operations', async (req, res) => {
                 jobsCompleted: completed,
                 jobsWorked: worked,
                 jobsOpen: open,
+                workingJobs: working,
+                notWorkingJobs: notWorking,
                 jobCompletionRate: parseFloat(completionRate),
                 cancellationRate: parseFloat(cancellationRate),
                 bookingTimeCompletion: btcCount > 0 ? {
@@ -96,6 +117,7 @@ router.get('/operations', async (req, res) => {
                     completionPercent: sumPromised > 0 ? ((sumActual / sumPromised) * 100).toFixed(1) : 0
                 } : { avgPromisedMinutes: 0, avgActualMinutes: 0, completionPercent: 0 },
                 jobsPerTech: parseFloat(jobsPerTechRatio),
+                bayWiseIncome
             }
         });
     } catch (err) {

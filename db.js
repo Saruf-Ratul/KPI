@@ -37,7 +37,7 @@ const PARTS_DBS = {
     Uttara: process.env.PARTS_DB_UTTARA || 'dbUttara_SIMS',
 };
 
-const ACCOUNTS_DB = process.env.ACCOUNTS_DB || 'NVToyota_12';
+const ACCOUNTS_DB = process.env.ACCOUNTS_DB || 'ServiceCenter_12';
 
 // Connection pool cache
 const pools = {};
@@ -54,7 +54,7 @@ async function getPool(dbName) {
         
         // Use a different server for the accounts database
         if (dbName === ACCOUNTS_DB) {
-            config.server = process.env.ACCOUNTS_DB_SERVER || '192.168.3.7';
+            config.server = process.env.ACCOUNTS_DB_SERVER || '192.168.2.12';
             config.user = process.env.ACCOUNTS_DB_USER || 'dbAshraf';
             config.password = process.env.ACCOUNTS_DB_PASSWORD || 'dbAdmin&navana&6395';
         }

@@ -281,10 +281,18 @@ const App = {
         this.setCard('op-jobs-completed', this.fmt(k.jobsCompleted));
         this.setCard('op-jobs-worked', this.fmt(k.jobsWorked));
         this.setCard('op-jobs-open', this.fmt(k.jobsOpen));
+        this.setCard('op-jobs-working', this.fmt(k.workingJobs));
+        this.setCard('op-jobs-not-working', this.fmt(k.notWorkingJobs));
         this.setCard('op-completion-rate', this.fmt(k.jobCompletionRate, 'percent'));
-        this.setCard('op-booking-time', k.bookingTimeCompletion ? this.fmt(k.bookingTimeCompletion.completionPercent, 'percent') : '—');
+        this.setCard('op-booking-time', k.bookingTimeCompletion ? this.fmt(k.bookingTimeCompletion.completionPercent, 'percent') : '-');
         this.setCard('op-jobs-per-tech', this.fmt(k.jobsPerTech, 'ratio'));
         this.setCard('op-cancellation', this.fmt(k.cancellationRate, 'percent'));
+
+        if (window.ChartManager && k.bayWiseIncome) {
+            const labels = k.bayWiseIncome.map(b => b.bay === 'Unassigned' ? b.bay : 'Bay ' + b.bay);
+            const vals = k.bayWiseIncome.map(b => b.income);
+            ChartManager.createBarChart('bayIncomeChart', labels, [{label: 'Income ৳', data: vals}]);
+        }
     },
 
     // ========= SALES =========

@@ -213,7 +213,17 @@
                 </div>
                 <div class="kpi-card loading" id="op-jobs-open">
                     <div class="card-header"><div class="card-icon amber">📂</div></div>
-                    <div class="card-label">Jobs Open</div>
+                    <div class="card-label">Jobs Open (Total)</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-working">
+                    <div class="card-header"><div class="card-icon teal">🔧</div></div>
+                    <div class="card-label">Jobs Working</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="op-jobs-not-working">
+                    <div class="card-header"><div class="card-icon red">⏳</div></div>
+                    <div class="card-label">Jobs Not Working</div>
                     <div class="card-value">—</div><div class="card-sub"></div>
                 </div>
                 <div class="kpi-card loading" id="op-completion-rate">
@@ -235,6 +245,13 @@
                     <div class="card-header"><div class="card-icon red">❌</div></div>
                     <div class="card-label">Cancellation Rate</div>
                     <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+            
+            <div class="chart-grid" style="margin-top: 24px;">
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Bay-Wise Income</h4>
+                    <div class="chart-container"><canvas id="bayIncomeChart"></canvas></div>
                 </div>
             </div>
         </div>

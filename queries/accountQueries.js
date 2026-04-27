@@ -4,11 +4,18 @@ const { getDateFilter } = require('./serviceQueries');
 // to demonstrate the integration of NVToyota_12.
 
 function totalBankTransactions(period) {
-    return `SELECT ISNULL(SUM(Amount), 0) as total FROM BankTransaction WHERE ${getDateFilter(period, 'TransactionDate')}`;
+    return `SELECT ISNULL(SUM(d.Amount), 0) as total 
+            FROM JournalDetail d
+            INNER JOIN JournalMaster m ON m.SlNo = d.SlNo
+            WHERE m.PayMode <> 'C' AND d.Amount > 0
+            AND ${getDateFilter(period, 'm.TransactionDate')}`;
 }
 
 function bankTransactionCount(period) {
-    return `SELECT COUNT(*) as total FROM BankTransaction WHERE ${getDateFilter(period, 'TransactionDate')}`;
+    return `SELECT COUNT(*) as total 
+            FROM JournalMaster 
+            WHERE PayMode <> 'C' 
+            AND ${getDateFilter(period, 'TransactionDate')}`;
 }
 
 function totalJournalEntries(period) {
@@ -20,9 +27,8 @@ function latestJournalEntries() {
 }
 
 function totalCostOfGoods(period) {
-    // If CostofGoods has a date column, filter it. Else just count rows for now.
-    // Assuming tDate exists based on similar tables.
-    return `SELECT ISNULL(SUM(oAmount), 0) as total FROM CostofGoods`; 
+    // CostofGoods doesn't have a date column in ServiceCenter_12
+    return `SELECT ISNULL(SUM(Amount), 0) as total FROM CostofGoods`; 
 }
 
 function activeAccountsCount() {
