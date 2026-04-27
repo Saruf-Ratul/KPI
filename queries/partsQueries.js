@@ -11,7 +11,8 @@ function partsRevenue(period) {
     return `SELECT ISNULL(SUM(dt.Rate * dt.R_InvQty), 0) as total
             FROM tbFTrans_Dt dt
             INNER JOIN tbFTRans_MR mr ON mr.RTrID = dt.RTrID
-            WHERE mr.RTrType = 2
+            WHERE mr.RTrType = 1 
+            AND ISNULL(mr.JobNO, '') = ''
             AND ${getDateFilter(period, 'mr.RTrDate')}`;
 }
 
@@ -22,7 +23,8 @@ function partsRevenueByMonth(period) {
                 ISNULL(SUM(dt.Rate * dt.R_InvQty), 0) as total
             FROM tbFTrans_Dt dt
             INNER JOIN tbFTRans_MR mr ON mr.RTrID = dt.RTrID
-            WHERE mr.RTrType = 2
+            WHERE mr.RTrType = 1 
+            AND ISNULL(mr.JobNO, '') = ''
             AND ${getDateFilter(period, 'mr.RTrDate')}
             GROUP BY YEAR(mr.RTrDate), MONTH(mr.RTrDate)
             ORDER BY yr, mo`;
@@ -32,7 +34,7 @@ function partsCOGS(period) {
     return `SELECT ISNULL(SUM(dt.WAvgPrice * dt.R_InvQty), 0) as total
             FROM tbFTrans_Dt dt
             INNER JOIN tbFTRans_MR mr ON mr.RTrID = dt.RTrID
-            WHERE mr.RTrType = 2
+            WHERE mr.RTrType = 1
             AND ${getDateFilter(period, 'mr.RTrDate')}`;
 }
 
@@ -40,7 +42,7 @@ function partsExpense(period) {
     return `SELECT ISNULL(SUM(dt.RUnitPrice * dt.R_InvQty), 0) as total
             FROM tbFTrans_Dt dt
             INNER JOIN tbFTRans_MR mr ON mr.RTrID = dt.RTrID
-            WHERE mr.RTrType = 1
+            WHERE mr.RTrType = 0
             AND ${getDateFilter(period, 'mr.RTrDate')}`;
 }
 
@@ -62,7 +64,8 @@ function partsRevenueByCustomerType(period) {
                 ISNULL(SUM(dt.Rate * dt.R_InvQty), 0) as total
             FROM tbFTrans_Dt dt
             INNER JOIN tbFTRans_MR mr ON mr.RTrID = dt.RTrID
-            WHERE mr.RTrType = 2
+            WHERE mr.RTrType = 1 
+            AND ISNULL(mr.JobNO, '') = ''
             AND ${getDateFilter(period, 'mr.RTrDate')}
             GROUP BY mr.Cust_Type
             ORDER BY total DESC`;

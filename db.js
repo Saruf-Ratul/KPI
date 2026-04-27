@@ -37,6 +37,8 @@ const PARTS_DBS = {
     Uttara: process.env.PARTS_DB_UTTARA || 'dbUttara_SIMS',
 };
 
+const ACCOUNTS_DB = process.env.ACCOUNTS_DB || 'NVToyota_12';
+
 // Connection pool cache
 const pools = {};
 
@@ -48,7 +50,15 @@ async function getPool(dbName) {
         return pools[dbName];
     }
     try {
-        const config = { ...baseConfig, database: dbName };
+        let config = { ...baseConfig, database: dbName };
+        
+        // Use a different server for the accounts database
+        if (dbName === ACCOUNTS_DB) {
+            config.server = process.env.ACCOUNTS_DB_SERVER || '192.168.3.7';
+            config.user = process.env.ACCOUNTS_DB_USER || 'dbAshraf';
+            config.password = process.env.ACCOUNTS_DB_PASSWORD || 'dbAdmin&navana&6395';
+        }
+
         const pool = await new sql.ConnectionPool(config).connect();
         pools[dbName] = pool;
         console.log(`✅ Connected to ${dbName}`);
@@ -136,14 +146,23 @@ async function closeAll() {
     }
 }
 
+/**
+ * Execute query against the Accounts database
+ */
+async function queryAccountsDB(query, params = {}) {
+    return await executeQuery(ACCOUNTS_DB, query, params);
+}
+
 module.exports = {
     sql,
     getPool,
     executeQuery,
     queryAllServiceDBs,
     queryAllPartsDBs,
+    queryAccountsDB,
     sumField,
     closeAll,
     SERVICE_DBS,
     PARTS_DBS,
+    ACCOUNTS_DB,
 };

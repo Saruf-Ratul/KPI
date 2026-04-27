@@ -20,11 +20,61 @@ const App = {
     ],
 
     async init() {
+        if (!localStorage.getItem('kpi_token')) {
+            window.location.href = '/login.html';
+            return;
+        }
+        
+        this.initTheme();
         this.bindNav();
         this.bindPeriods();
         this.bindRefresh();
         this.bindMenuToggle();
+        this.bindLogout();
         this.showSection('dashboard');
+    },
+
+    bindLogout() {
+        const btn = document.getElementById('logoutBtn');
+        if (btn) btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kpi_token');
+            localStorage.removeItem('kpi_user');
+            window.location.href = '/login.html';
+        });
+    },
+
+    initTheme() {
+        const savedTheme = localStorage.getItem('kpi_theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('themeToggleBtn').textContent = '🌙';
+            if (window.ChartManager) ChartManager.updateTheme(true);
+        }
+
+        const btn = document.getElementById('themeToggleBtn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+    },
+
+    toggleTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const newTheme = isLight ? 'dark' : 'light';
+        const btn = document.getElementById('themeToggleBtn');
+        
+        if (newTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            if (btn) btn.textContent = '🌙';
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            if (btn) btn.textContent = '☀️';
+        }
+        
+        localStorage.setItem('kpi_theme', newTheme);
+        if (window.ChartManager) ChartManager.updateTheme(newTheme === 'light');
     },
 
     bindNav() {
@@ -42,14 +92,35 @@ const App = {
     },
 
     bindPeriods() {
+        const customPicker = document.getElementById('customDatePicker');
+        
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.currentPeriod = btn.dataset.period;
+                const period = btn.dataset.period;
+                
+                if (period === 'custom') {
+                    customPicker.style.display = 'flex';
+                } else {
+                    customPicker.style.display = 'none';
+                    this.currentPeriod = period;
+                    this.cache = {};
+                    this.loadSectionData(this.currentSection);
+                }
+                
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                this.cache = {};
-                this.loadSectionData(this.currentSection);
             });
+        });
+
+        const applyBtn = document.getElementById('applyCustomDate');
+        if (applyBtn) applyBtn.addEventListener('click', () => {
+            const start = document.getElementById('customStartDate').value;
+            const end = document.getElementById('customEndDate').value;
+            if (!start || !end) return alert('Please select both start and end dates');
+            
+            this.currentPeriod = `custom&startDate=${start}&endDate=${end}`;
+            this.cache = {};
+            this.loadSectionData(this.currentSection);
         });
     },
 
@@ -77,7 +148,7 @@ const App = {
         const el = document.getElementById(`section-${section}`);
         if (el) el.classList.add('active');
         // Update topbar title
-        const titles = { dashboard: 'Dashboard Overview', operations: 'Operations', sales: 'Sales & Revenue', financial: 'Financial Ratios', hr: 'Team / HR' };
+        const titles = { dashboard: 'Dashboard Overview', operations: 'Operations', sales: 'Sales & Revenue', financial: 'Financial Ratios', hr: 'Team / HR', compare: 'Service vs Parts Compare', branches: 'Branches Breakdown', accounts: 'Accounts & General Ledger' };
         const h2 = document.querySelector('.topbar-left h2');
         if (h2) h2.textContent = titles[section] || 'Dashboard';
         this.loadSectionData(section);
@@ -87,7 +158,14 @@ const App = {
         const url = `/api/kpi/${endpoint}?period=${this.currentPeriod}`;
         if (this.cache[url]) return this.cache[url];
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('kpi_token')}` }
+            });
+            if (res.status === 401) {
+                localStorage.removeItem('kpi_token');
+                window.location.href = '/login.html';
+                return null;
+            }
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             this.cache[url] = data;
@@ -114,6 +192,9 @@ const App = {
             case 'sales': await this.loadSales(); break;
             case 'financial': await this.loadFinancial(); break;
             case 'hr': await this.loadHR(); break;
+            case 'compare': await this.loadCompare(); break;
+            case 'branches': await this.loadBranches(); break;
+            case 'accounts': await this.loadAccounts(); break;
         }
     },
 
@@ -280,6 +361,93 @@ const App = {
                 const total = roles.reduce((a, r) => a + r.count, 0);
                 tbody.innerHTML += `<tr><td style="font-weight:600">${branch}</td><td>${total}</td><td>${roles.map(r => `${r.role} (${r.count})`).slice(0,3).join(', ')}</td></tr>`;
             }
+        }
+    },
+
+    // ========= COMPARE =========
+    async loadCompare() {
+        const data = await this.fetchAPI('compare');
+        if (!data || !data.comparison) return;
+        
+        const cmp = data.comparison;
+        
+        this.setCard('cmp-service-rev', this.fmt(cmp.revenue.service, 'currency'), `${cmp.percentages.serviceRevPct}% of total`);
+        this.setCard('cmp-parts-rev', this.fmt(cmp.revenue.parts, 'currency'), `${cmp.percentages.partsRevPct}% of total`);
+        
+        this.setCard('cmp-service-profit', this.fmt(cmp.grossProfit.service, 'currency'));
+        this.setCard('cmp-parts-profit', this.fmt(cmp.grossProfit.parts, 'currency'));
+        
+        this.setCard('cmp-service-emp', this.fmt(cmp.employees.service));
+        this.setCard('cmp-parts-emp', this.fmt(cmp.employees.parts));
+
+        ChartManager.createBarChart('compareRevenueChart', ['Service', 'Parts'], [
+            { label: 'Revenue', data: [cmp.revenue.service, cmp.revenue.parts], colors: [ChartManager.colors.blue, ChartManager.colors.purple] },
+            { label: 'COGS', data: [cmp.cogs.service, cmp.cogs.parts], colors: [ChartManager.colors.red, ChartManager.colors.red] }
+        ]);
+
+        ChartManager.createDoughnutChart('compareProfitChart', ['Service Profit', 'Parts Profit'], [cmp.grossProfit.service, cmp.grossProfit.parts], [ChartManager.colors.blue, ChartManager.colors.purple]);
+    },
+
+    // ========= BRANCHES =========
+    async loadBranches() {
+        const data = await this.fetchAPI('branches');
+        if (!data || !data.branches) return;
+        
+        const bSvc = data.branches.service;
+        const bParts = data.branches.parts;
+        
+        // Populate Service Table
+        const svcTb = document.getElementById('svcBranchesTable').querySelector('tbody');
+        svcTb.innerHTML = '';
+        const svcLabels = []; const svcData = [];
+        for (const [key, d] of Object.entries(bSvc)) {
+            svcTb.innerHTML += `<tr><td>${key}</td><td>${this.fmt(d.revenue, 'currency')}</td><td>${this.fmt(d.jobsCompleted)}</td></tr>`;
+            svcLabels.push(key);
+            svcData.push(d.revenue);
+        }
+
+        // Populate Parts Table
+        const partsTb = document.getElementById('partsBranchesTable').querySelector('tbody');
+        partsTb.innerHTML = '';
+        const partsLabels = []; const partsData = [];
+        for (const [key, d] of Object.entries(bParts)) {
+            partsTb.innerHTML += `<tr><td>${key}</td><td>${this.fmt(d.revenue, 'currency')}</td></tr>`;
+            partsLabels.push(key);
+            partsData.push(d.revenue);
+        }
+
+        // Charts
+        ChartManager.createBarChart('branchSvcChart', svcLabels, [
+            { label: 'Revenue', data: svcData, colors: Array(svcLabels.length).fill(ChartManager.colors.blue) }
+        ]);
+
+        ChartManager.createBarChart('branchPartsChart', partsLabels, [
+            { label: 'Revenue', data: partsData, colors: Array(partsLabels.length).fill(ChartManager.colors.purple) }
+        ]);
+    },
+
+    // ========= ACCOUNTS =========
+    async loadAccounts() {
+        const data = await this.fetchAPI('accounts');
+        if (!data || !data.accounts) return;
+        
+        const acc = data.accounts;
+        
+        this.setCard('acc-bank-total', this.fmt(acc.totalBankTransactionsAmount, 'currency'));
+        this.setCard('acc-bank-count', this.fmt(acc.bankTransactionCount));
+        this.setCard('acc-journal-count', this.fmt(acc.totalJournalEntries));
+        this.setCard('acc-accounts-count', this.fmt(acc.activeAccountsCount));
+
+        // Populate Latest Journals Table
+        const tb = document.getElementById('accJournalsTable').querySelector('tbody');
+        tb.innerHTML = '';
+        if (acc.latestJournals && acc.latestJournals.length > 0) {
+            for (const j of acc.latestJournals) {
+                const date = new Date(j.TransactionDate).toLocaleDateString();
+                tb.innerHTML += `<tr><td>${j.VoucherNo}</td><td>${date}</td><td>${j.UserName}</td><td>${j.CostCentreId}</td></tr>`;
+            }
+        } else {
+            tb.innerHTML = `<tr><td colspan="4">No recent journal entries found.</td></tr>`;
         }
     },
 };

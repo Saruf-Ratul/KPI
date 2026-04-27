@@ -131,6 +131,37 @@ const ChartManager = {
                 }
             }
         });
+    },
+
+    updateTheme(isLight) {
+        const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+        const textColor = '#64748b'; // Remains readable in both
+        const tooltipBg = isLight ? 'rgba(255,255,255,0.95)' : 'rgba(17,24,39,0.95)';
+        const tooltipTitle = isLight ? '#0f172a' : '#f1f5f9';
+        const borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+        
+        this.defaultOptions.plugins.tooltip.backgroundColor = tooltipBg;
+        this.defaultOptions.plugins.tooltip.titleColor = tooltipTitle;
+        this.defaultOptions.plugins.tooltip.bodyColor = textColor;
+        this.defaultOptions.plugins.tooltip.borderColor = borderColor;
+        
+        this.defaultOptions.scales.x.grid.color = gridColor;
+        this.defaultOptions.scales.y.grid.color = gridColor;
+        
+        for (const id in this.charts) {
+            const chart = this.charts[id];
+            if (chart.options.scales && chart.options.scales.x) {
+                chart.options.scales.x.grid.color = gridColor;
+                chart.options.scales.y.grid.color = gridColor;
+            }
+            if (chart.options.plugins && chart.options.plugins.tooltip) {
+                chart.options.plugins.tooltip.backgroundColor = tooltipBg;
+                chart.options.plugins.tooltip.titleColor = tooltipTitle;
+                chart.options.plugins.tooltip.bodyColor = textColor;
+                chart.options.plugins.tooltip.borderColor = borderColor;
+            }
+            chart.update();
+        }
     }
 };
 

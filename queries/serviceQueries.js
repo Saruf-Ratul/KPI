@@ -6,8 +6,22 @@
 /**
  * Generate WHERE clause for date filtering
  */
-function getDateFilter(period, dateColumn = 'dDate') {
+function getDateFilter(periodInput, dateColumn = 'dDate') {
+    let period = periodInput;
+    let startDate, endDate;
+    
+    if (typeof periodInput === 'object') {
+        period = periodInput.period;
+        startDate = periodInput.startDate;
+        endDate = periodInput.endDate;
+    }
+
     switch (period) {
+        case 'custom':
+            if (startDate && endDate) {
+                return `${dateColumn} >= '${startDate} 00:00:00' AND ${dateColumn} <= '${endDate} 23:59:59'`;
+            }
+            return `YEAR(${dateColumn}) = YEAR(GETDATE())`;
         case 'today':
             return `CAST(${dateColumn} AS DATE) = CAST(GETDATE() AS DATE)`;
         case 'thisWeek':
@@ -90,7 +104,7 @@ function jobsScheduled(period) {
 function jobsCompleted(period) {
     return `SELECT COUNT(DISTINCT j.vJob_No) as total 
             FROM tbJob j 
-            INNER JOIN H_Invoice_JOB h ON h.vJob_No = j.vJob_No
+            INNER JOIN tbBill b ON b.vJob_No = j.vJob_No
             WHERE j.Cancelled = 0 AND ${getDateFilter(period, 'j.dDate')}`;
 }
 
@@ -105,7 +119,7 @@ function jobsOpen(period) {
     return `SELECT COUNT(*) as total FROM tbJob j 
             WHERE j.Cancelled = 0 
             AND ${getDateFilter(period, 'j.dDate')}
-            AND NOT EXISTS (SELECT 1 FROM H_Invoice_JOB h WHERE h.vJob_No = j.vJob_No)`;
+            AND NOT EXISTS (SELECT 1 FROM tbBill b WHERE b.vJob_No = j.vJob_No)`;
 }
 
 function jobsCancelled(period) {
@@ -131,10 +145,10 @@ function jobsPerTech(period) {
 function bookingTimeCompletion(period) {
     return `SELECT 
                 AVG(DATEDIFF(MINUTE, j.Receive_Time, j.Promised_Time)) as avgPromisedMinutes,
-                AVG(DATEDIFF(MINUTE, j.Receive_Time, h.BillDate)) as avgActualMinutes,
+                AVG(DATEDIFF(MINUTE, j.Receive_Time, b.dDate)) as avgActualMinutes,
                 COUNT(*) as total
             FROM tbJob j
-            INNER JOIN H_Invoice_JOB h ON h.vJob_No = j.vJob_No
+            INNER JOIN tbBill b ON b.vJob_No = j.vJob_No
             WHERE j.Cancelled = 0 
             AND j.Receive_Time IS NOT NULL 
             AND j.Promised_Time IS NOT NULL
@@ -240,7 +254,7 @@ function employeeCountByRole() {
                 d.Designation as role,
                 COUNT(*) as total
             FROM tbEmployee_Information ei
-            INNER JOIN tbDesignation d ON d.DesigID = ei.Desig_ID
+            INNER JOIN tbDesignation d ON d.Desig_ID = ei.Desig_ID
             WHERE ISNULL(ei.Active_Tag, 1) = 1
             GROUP BY d.Designation
             ORDER BY total DESC`;
@@ -253,7 +267,7 @@ function activeEmployeeCount() {
 function activeTechnicianCount() {
     return `SELECT COUNT(*) as total FROM tbEmployee_Information 
             WHERE ISNULL(Active_Tag, 1) = 1 
-            AND Desig_ID IN (SELECT DesigID FROM tbDesignation WHERE Designation LIKE '%Tech%' OR Designation LIKE '%Mechanic%')`;
+            AND Desig_ID IN (SELECT Desig_ID FROM tbDesignation WHERE Designation LIKE '%Tech%' OR Designation LIKE '%Mechanic%')`;
 }
 
 module.exports = {

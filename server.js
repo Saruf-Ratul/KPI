@@ -11,9 +11,42 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Static Users
+const users = {
+    'admin': 'admin123',
+    'user': 'user123',
+    'svc': 'svc123'
+};
+
+// Login Route
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    if (users[username] && users[username] === password) {
+        // Simple token for static auth
+        const token = Buffer.from(`${username}:${password}`).toString('base64');
+        res.json({ token, username });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
+
+// Auth Middleware
+function requireAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const decoded = Buffer.from(token, 'base64').toString('ascii');
+        const [username, password] = decoded.split(':');
+        if (users[username] && users[username] === password) {
+            return next();
+        }
+    }
+    res.status(401).json({ error: 'Unauthorized' });
+}
+
 // API Routes
 const kpiRoutes = require('./routes/kpi');
-app.use('/api/kpi', kpiRoutes);
+app.use('/api/kpi', requireAuth, kpiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

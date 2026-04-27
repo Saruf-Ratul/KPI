@@ -25,6 +25,90 @@ d:\SVC\KPI\
         └── charts.js             # Chart.js wrapper (line, bar, doughnut)
 ```
 
+### System Architecture & Database Flow
+
+```mermaid
+graph TD
+    %% Styling
+    classDef client fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
+    classDef server fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff
+    classDef opDB fill:#14b8a6,stroke:#0f766e,stroke-width:2px,color:#fff
+    classDef accDB fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff
+
+    subgraph Client ["Client Side (Browser)"]
+        UI["Dashboard UI (index.html, app.js)"]:::client
+        Charts["Chart.js Data Viz"]:::client
+    end
+
+    subgraph Backend ["Node.js Backend"]
+        API["Express API (routes/kpi.js)"]:::server
+        
+        subgraph Queries ["Query Builders"]
+            S_Query["Service Queries"]:::server
+            P_Query["Parts Queries"]:::server
+            A_Query["Accounts Logic"]:::server
+        end
+        
+        Pool["DB Connection Pool (db.js)"]:::server
+    end
+
+    subgraph Server1 ["Operational Server (192.168.2.10)"]
+        SDB[("4 Service DBs<br>tbPayments, tbJob_Master")]:::opDB
+        PDB[("5 Parts DBs<br>tbFTRans_MR, tbFTrans_Dt")]:::opDB
+    end
+
+    subgraph Server2 ["Accounting Server (192.168.3.7)"]
+        ADB[("NVToyota_12 DB<br>General Ledger, Journals")]:::accDB
+    end
+
+    %% Flow
+    UI -->|"1. Request Data (Date Filters)"| API
+    UI -.->|"Render"| Charts
+    API -->|"2. Build SQL"| S_Query
+    API -->|"2. Build SQL"| P_Query
+    API -->|"2. Build SQL"| A_Query
+
+    S_Query -->|"3. Execute"| Pool
+    P_Query -->|"3. Execute"| Pool
+    A_Query -->|"3. Execute"| Pool
+
+    Pool -->|"4. Fetch Data"| SDB
+    Pool -->|"4. Fetch Data"| PDB
+    Pool -->|"4. Fetch Data"| ADB
+```
+
+### User Navigation Flow
+
+```mermaid
+graph TD
+    classDef page fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    classDef section fill:#1e293b,stroke:#8b5cf6,stroke-width:2px,color:#cbd5e1
+
+    Login["🔐 Login Page (/login.html)"]:::page
+    Auth{"Authentication Check"}
+
+    Login -->|"Submit Credentials"| Auth
+    Auth -->|"Invalid"| Login
+    Auth -->|"Valid JWT"| Dash["📊 Main Dashboard (index.html)"]:::page
+
+    Dash --> Nav["Sidebar Navigation"]:::section
+    Dash --> Topbar["Topbar (Date Filters & Theme)"]:::section
+
+    Nav -->|"Select Category"| D_Main["Dashboard Summary"]:::page
+    Nav -->|"Select Category"| Op["⚙️ Operations KPIs"]:::page
+    Nav -->|"Select Category"| Sales["💰 Sales & Revenue"]:::page
+    Nav -->|"Select Category"| Fin["📈 Financial Ratios"]:::page
+    Nav -->|"Select Category"| HR["👥 HR & Employees"]:::page
+    Nav -->|"Select Category"| Comp["⚖️ Service vs Parts"]:::page
+    Nav -->|"Select Category"| Branch["🏢 Branch Breakdown"]:::page
+    Nav -->|"Select Category"| Acc["🏦 General Ledger"]:::page
+
+    Topbar -.->|"Applies Globally to Active View"| D_Main
+    Topbar -.->|"Applies Globally to Active View"| Op
+    Topbar -.->|"Applies Globally to Active View"| Sales
+    Topbar -.->|"Applies Globally to Active View"| Fin
+```
+
 ## KPI Coverage (40+ KPIs)
 
 | Category | KPIs |

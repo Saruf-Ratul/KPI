@@ -17,11 +17,23 @@ async function sumPartsQuery(queryFn, period) {
     return db.sumField(results, 'total');
 }
 
+function getPeriodObj(req) {
+    const period = req.query.period || 'thisYear';
+    if (period === 'custom') {
+        return {
+            period: 'custom',
+            startDate: req.query.startDate,
+            endDate: req.query.endDate
+        };
+    }
+    return period;
+}
+
 // ============================================================
 // GET /api/kpi/operations
 // ============================================================
 router.get('/operations', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [
             appointments, proposals, proposalsOut,
@@ -96,7 +108,7 @@ router.get('/operations', async (req, res) => {
 // GET /api/kpi/sales
 // ============================================================
 router.get('/sales', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [
             svcRev, partsRev,
@@ -170,7 +182,7 @@ router.get('/sales', async (req, res) => {
 // GET /api/kpi/financial
 // ============================================================
 router.get('/financial', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [
             svcRev, partsRev,
@@ -319,7 +331,7 @@ router.get('/hr', async (req, res) => {
 // GET /api/kpi/dashboard — Combined overview
 // ============================================================
 router.get('/dashboard', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [
             svcRev, partsRev,
@@ -372,7 +384,7 @@ router.get('/dashboard', async (req, res) => {
 // GET /api/kpi/revenue-trend — Monthly revenue trend
 // ============================================================
 router.get('/revenue-trend', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [svcResults, partsResults] = await Promise.all([
             db.queryAllServiceDBs(svcQ.serviceRevenueByMonth(period)),
@@ -407,7 +419,7 @@ router.get('/revenue-trend', async (req, res) => {
 // GET /api/kpi/customer-type — Revenue by customer type
 // ============================================================
 router.get('/customer-type', async (req, res) => {
-    const period = req.query.period || 'thisYear';
+    const period = getPeriodObj(req);
     try {
         const [svcResults, partsResults] = await Promise.all([
             db.queryAllServiceDBs(svcQ.revenueByCustomerType(period)),
@@ -433,6 +445,137 @@ router.get('/customer-type', async (req, res) => {
         res.json({ period, data });
     } catch (err) {
         console.error('Customer type error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================================
+// GET /api/kpi/compare — Service vs Parts Comparison
+// ============================================================
+router.get('/compare', async (req, res) => {
+    const period = getPeriodObj(req);
+    try {
+        const [
+            svcRev, partsRev,
+            svcExp, partsExp,
+            svcCOGS, partsCOGS_val,
+            empSvc, empParts,
+        ] = await Promise.all([
+            sumServiceQuery(svcQ.serviceRevenue, period),
+            sumPartsQuery(partsQ.partsRevenue, period),
+            sumServiceQuery(svcQ.serviceExpense, period),
+            sumPartsQuery(partsQ.partsExpense, period),
+            sumServiceQuery(svcQ.serviceCOGS, period),
+            sumPartsQuery(partsQ.partsCOGS, period),
+            sumServiceQuery(svcQ.activeEmployeeCount, period),
+            sumPartsQuery(() => partsQ.partsEmployeeCount(), period),
+        ]);
+
+        const svcProfit = svcRev - svcCOGS;
+        const partsProfit = partsRev - partsCOGS_val;
+        const totalRev = svcRev + partsRev;
+
+        res.json({
+            period,
+            comparison: {
+                revenue: { service: svcRev, parts: partsRev },
+                expense: { service: svcExp, parts: partsExp },
+                cogs: { service: svcCOGS, parts: partsCOGS_val },
+                grossProfit: { service: svcProfit, parts: partsProfit },
+                employees: { service: empSvc, parts: empParts },
+                percentages: {
+                    serviceRevPct: totalRev > 0 ? ((svcRev / totalRev) * 100).toFixed(1) : 0,
+                    partsRevPct: totalRev > 0 ? ((partsRev / totalRev) * 100).toFixed(1) : 0,
+                }
+            }
+        });
+    } catch (err) {
+        console.error('Compare KPI error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================================
+// GET /api/kpi/branches — Individual DB Breakdown
+// ============================================================
+router.get('/branches', async (req, res) => {
+    const period = getPeriodObj(req);
+    try {
+        const [
+            svcRevRaw, svcJobsRaw,
+            partsRevRaw
+        ] = await Promise.all([
+            db.queryAllServiceDBs(svcQ.serviceRevenue(period)),
+            db.queryAllServiceDBs(svcQ.jobsCompleted(period)),
+            db.queryAllPartsDBs(partsQ.partsRevenue(period))
+        ]);
+
+        const serviceBranches = {};
+        for (const [key, result] of Object.entries(svcRevRaw)) {
+            serviceBranches[key] = { revenue: 0, jobsCompleted: 0 };
+            if (result.recordset && result.recordset[0]) {
+                serviceBranches[key].revenue = result.recordset[0].total || 0;
+            }
+        }
+        for (const [key, result] of Object.entries(svcJobsRaw)) {
+            if (result.recordset && result.recordset[0] && serviceBranches[key]) {
+                serviceBranches[key].jobsCompleted = result.recordset[0].total || 0;
+            }
+        }
+
+        const partsBranches = {};
+        for (const [key, result] of Object.entries(partsRevRaw)) {
+            partsBranches[key] = { revenue: 0 };
+            if (result.recordset && result.recordset[0]) {
+                partsBranches[key].revenue = result.recordset[0].total || 0;
+            }
+        }
+
+        res.json({
+            period,
+            branches: {
+                service: serviceBranches,
+                parts: partsBranches
+            }
+        });
+    } catch (err) {
+        console.error('Branches KPI error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+const accQ = require('../queries/accountQueries');
+
+// ============================================================
+// GET /api/kpi/accounts — General Ledger & Bank
+// ============================================================
+router.get('/accounts', async (req, res) => {
+    const period = getPeriodObj(req);
+    try {
+        const [
+            bankTotalRes, bankCountRes,
+            journalRes,
+            accountsRes, latestJournalsRes
+        ] = await Promise.all([
+            db.queryAccountsDB(accQ.totalBankTransactions(period)),
+            db.queryAccountsDB(accQ.bankTransactionCount(period)),
+            db.queryAccountsDB(accQ.totalJournalEntries(period)),
+            db.queryAccountsDB(accQ.activeAccountsCount()),
+            db.queryAccountsDB(accQ.latestJournalEntries())
+        ]);
+
+        res.json({
+            period,
+            accounts: {
+                totalBankTransactionsAmount: bankTotalRes.recordset[0]?.total || 0,
+                bankTransactionCount: bankCountRes.recordset[0]?.total || 0,
+                totalJournalEntries: journalRes.recordset[0]?.total || 0,
+                activeAccountsCount: accountsRes.recordset[0]?.total || 0,
+                latestJournals: latestJournalsRes.recordset || []
+            }
+        });
+    } catch (err) {
+        console.error('Accounts KPI error:', err);
         res.status(500).json({ error: err.message });
     }
 });

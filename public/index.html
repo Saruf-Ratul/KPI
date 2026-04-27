@@ -37,6 +37,15 @@
             <a class="nav-item" data-section="hr" href="#">
                 <span class="icon">👥</span> Team / HR
             </a>
+            <a class="nav-item" data-section="compare" href="#">
+                <span class="icon">⚖️</span> Compare
+            </a>
+            <a class="nav-item" data-section="branches" href="#">
+                <span class="icon">🏢</span> Branches
+            </a>
+            <a class="nav-item" data-section="accounts" href="#">
+                <span class="icon">🏦</span> Accounts
+            </a>
         </div>
         <div class="nav-section">
             <div class="nav-section-title">Data Sources</div>
@@ -46,6 +55,11 @@
             <div class="nav-item" style="cursor:default;font-size:11px;color:var(--text-muted)">
                 <span class="icon">🔩</span> 5 Parts DBs
             </div>
+        <div class="nav-section">
+            <div class="nav-section-title">User</div>
+            <a class="nav-item" href="#" id="logoutBtn" style="color:var(--accent-red)">
+                <span class="icon">🚪</span> Logout
+            </a>
         </div>
     </nav>
 </aside>
@@ -72,7 +86,15 @@
                 <button class="period-btn" data-period="lastYear">Last Yr</button>
                 <button class="period-btn" data-period="lastYearQuarter">LY Qtr</button>
                 <button class="period-btn" data-period="lastYearYTD">LY YTD</button>
+                <button class="period-btn custom-btn" data-period="custom">Custom</button>
             </div>
+            <div class="custom-date-picker" id="customDatePicker" style="display: none;">
+                <input type="date" id="customStartDate" class="date-input">
+                <span>-</span>
+                <input type="date" id="customEndDate" class="date-input">
+                <button class="btn-primary-sm" id="applyCustomDate">Apply</button>
+            </div>
+            <button class="refresh-btn" id="themeToggleBtn" title="Toggle Theme">☀️</button>
             <button class="refresh-btn" id="refreshBtn" title="Refresh">⟳</button>
             <div class="connection-status">
                 <span class="status-dot"></span>
@@ -409,6 +431,126 @@
                         <tbody id="branchTableBody"><tr><td colspan="3" style="color:var(--text-muted)">Loading…</td></tr></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- ==================== COMPARE ==================== -->
+        <div class="kpi-section" id="section-compare">
+            <div class="section-header"><h3><span class="icon">⚖️</span> Service vs Parts Comparison</h3></div>
+            
+            <div class="hero-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="hero-card kpi-card loading" id="cmp-service-rev" style="border-top: 4px solid var(--accent-blue)">
+                    <div class="hero-label">Service Revenue</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card kpi-card loading" id="cmp-parts-rev" style="border-top: 4px solid var(--accent-purple)">
+                    <div class="hero-label">Parts Revenue</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="cmp-service-profit">
+                    <div class="card-header"><div class="card-icon blue">📈</div></div>
+                    <div class="card-label">Service Profit</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="cmp-parts-profit">
+                    <div class="card-header"><div class="card-icon purple">📈</div></div>
+                    <div class="card-label">Parts Profit</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="cmp-service-emp">
+                    <div class="card-header"><div class="card-icon blue">👥</div></div>
+                    <div class="card-label">Service Employees</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="cmp-parts-emp">
+                    <div class="card-header"><div class="card-icon purple">👥</div></div>
+                    <div class="card-label">Parts Employees</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Revenue Comparison</h4>
+                    <div class="chart-container"><canvas id="compareRevenueChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h4><span class="icon">💸</span> Profit Comparison</h4>
+                    <div class="chart-container"><canvas id="compareProfitChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== BRANCHES ==================== -->
+        <div class="kpi-section" id="section-branches">
+            <div class="section-header"><h3><span class="icon">🏢</span> Branches Breakdown</h3></div>
+            
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Revenue by Service Center</h4>
+                    <div class="chart-container"><canvas id="branchSvcChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h4><span class="icon">📊</span> Revenue by Parts DB</h4>
+                    <div class="chart-container"><canvas id="branchPartsChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="table-card" style="margin-top: 24px;">
+                <div class="table-header"><h4><span class="icon">⚙️</span> Service Centers</h4></div>
+                <table class="data-table" id="svcBranchesTable">
+                    <thead><tr><th>Branch</th><th>Revenue</th><th>Jobs Completed</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="table-card" style="margin-top: 24px;">
+                <div class="table-header"><h4><span class="icon">🔩</span> Parts Databases</h4></div>
+                <table class="data-table" id="partsBranchesTable">
+                    <thead><tr><th>Database</th><th>Revenue</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== ACCOUNTS ==================== -->
+        <div class="kpi-section" id="section-accounts">
+            <div class="section-header"><h3><span class="icon">🏦</span> Accounts & General Ledger</h3></div>
+            
+            <div class="kpi-grid">
+                <div class="kpi-card loading" id="acc-bank-total">
+                    <div class="card-header"><div class="card-icon blue">💰</div></div>
+                    <div class="card-label">Bank Transactions Total</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="acc-bank-count">
+                    <div class="card-header"><div class="card-icon purple">💳</div></div>
+                    <div class="card-label">Total Transactions</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="acc-journal-count">
+                    <div class="card-header"><div class="card-icon blue">📄</div></div>
+                    <div class="card-label">Journal Entries</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+                <div class="kpi-card loading" id="acc-accounts-count">
+                    <div class="card-header"><div class="card-icon purple">📂</div></div>
+                    <div class="card-label">Active Ledger Accounts</div>
+                    <div class="card-value">—</div><div class="card-sub"></div>
+                </div>
+            </div>
+
+            <div class="table-card" style="margin-top: 24px;">
+                <div class="table-header"><h4><span class="icon">🕒</span> Latest Journal Entries</h4></div>
+                <table class="data-table" id="accJournalsTable">
+                    <thead><tr><th>Voucher No</th><th>Date</th><th>User</th><th>Cost Centre</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
 

@@ -1,0 +1,54 @@
+# Implementation Plan: Login, Custom Dates & Compare Page
+
+This plan outlines the steps to implement authentication, custom time periods, and a new comparison page for the KPI Dashboard.
+
+## User Review Required
+- **Authentication**: I will implement a simple token-based authentication system using `localStorage`. Passwords will be statically checked on the backend. Is this acceptable, or do you prefer a session-based approach with cookies?
+- **Custom Dates**: The custom date filter will appear in the top bar. When "Custom" is selected, two date inputs (Start and End) will appear.
+- **Compare Page**: I will build a dedicated "Compare (Service vs Parts)" page highlighting revenue, expenses, COGS, and employee counts side-by-side using bar charts and KPI cards.
+
+## Proposed Changes
+
+### Backend API & Auth
+#### [MODIFY] `server.js`
+- Add a new POST `/api/login` endpoint to validate static users:
+  1. `admin` : `admin123`
+  2. `user` : `user123`
+  3. `svc` : `svc123`
+- Add a middleware to protect all `/api/kpi/*` routes, requiring a valid token header.
+
+#### [MODIFY] `routes/kpi.js`
+- Update all GET endpoints to read `startDate` and `endDate` query parameters when `period=custom`.
+- Pass these custom dates down to the database query builders.
+- Add a new GET `/api/kpi/compare` endpoint to specifically return Service vs Parts aggregated metrics.
+
+#### [MODIFY] `queries/serviceQueries.js` & `queries/partsQueries.js`
+- Modify the `getDateFilter(period, field)` helper to accept `startDate` and `endDate`.
+- Example logic: `IF period === 'custom' THEN return field >= startDate AND field <= endDate`.
+- Update all individual query builder functions to accept and pass through `startDate` and `endDate`.
+
+---
+
+### Frontend UI
+
+#### [NEW] `public/login.html` & `public/js/login.js`
+- Build a premium glassmorphism login page.
+- JavaScript to handle form submission, call `/api/login`, save the token to `localStorage`, and redirect to `index.html`.
+
+#### [MODIFY] `public/index.html`
+- **Navigation**: Add a "Compare" link in the sidebar and a "Logout" button.
+- **Top Bar**: Add a "Custom" period button, and hidden `<input type="date">` fields for start and end dates with an "Apply" button.
+- **New Section**: Add `<div id="section-compare">` with side-by-side cards and charts for comparing Service and Parts data.
+
+#### [MODIFY] `public/js/app.js`
+- **Auth Guard**: On page load, check if the auth token exists in `localStorage`; if not, redirect to `login.html`.
+- **Custom Dates**: Implement UI logic to show/hide the custom date pickers and append `&startDate=...&endDate=...` to API requests.
+- **Compare Logic**: Implement `loadCompare()` to fetch data and render the new comparison charts.
+
+#### [MODIFY] `public/css/styles.css`
+- Add styles for the login container, custom date inputs, and the compare section grid layout.
+
+## Verification Plan
+1. **Authentication**: Verify that accessing `index.html` without logging in redirects to `login.html`. Log in with `admin/admin123` and ensure the dashboard loads.
+2. **Custom Dates**: Select "Custom", pick specific dates, and verify the network requests pass the correct dates and the SQL queries execute without errors.
+3. **Compare Page**: Navigate to the Compare page and verify that Service and Parts metrics are accurately split and visualized.

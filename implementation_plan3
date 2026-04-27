@@ -1,0 +1,31 @@
+# Implementation Plan: Parts Calculation Logic & Accounts Database Fix
+
+Based on your explanation of the workflow ("Parts supply all parts as per job card issue and service keep that parts also parts department sell other category"), I have deeply investigated the `CPD_CTG_SIMS.sql` scripts and stored procedures (like `JOB_Wise_Item_Issue_in_Branch`).
+
+## Findings & Flaws in Current Logic
+
+1. **RTrType Misunderstanding**: The current queries mistakenly used `RTrType = 2` for Parts Revenue. `RTrType = 2` is actually **Sales Returns**. The correct type for Sales/Issues is `RTrType = 1`.
+2. **Double Counting Revenue**: Because Parts are issued to Job Cards (`RTrType = 1`), if we count all `RTrType = 1` as Parts Revenue, we will double-count revenue because the Service department also bills the customer for those parts and records it in `tbPayments` (Service Revenue).
+3. **Accounts DB Location**: `NVToyota_12` is hosted on a completely different server (`192.168.3.7`) than the operational databases (`192.168.2.10`).
+
+## Proposed Changes
+
+> [!IMPORTANT]
+> **To accurately separate Parts Revenue from Service Revenue:**
+> Parts Revenue must ONLY include Direct Counter Sales. We will filter out any parts issued to Job Cards.
+> **SQL Logic**: `WHERE RTrType = 1 AND ISNULL(JobNO, '') = ''`
+
+#### [MODIFY] `queries/partsQueries.js`
+- **Parts Revenue**: Update to use `RTrType = 1` and explicitly exclude records linked to a `JobNO`.
+- **Parts COGS**: Update to use `RTrType = 1` (Cost of Goods should include all parts leaving inventory, both for Job Cards and Counter Sales).
+- **Parts Expense**: Remove or adjust `partsExpense` as `RTrType = 1` represents sales, not operating expenses. (Operating expenses should ideally come from the new Accounts DB).
+
+#### [MODIFY] `db.js`
+- Create a secondary connection configuration specifically for `NVToyota_12`.
+- Point the server IP to `192.168.3.7`.
+- Connect to the Accounts database using this secondary configuration so the new "Accounts" tab will function correctly.
+
+## User Review Required
+Does this logic correctly align with your business rules? By excluding `JobNO` from Parts Revenue, we ensure that Revenue from Service Jobs is tracked solely under "Service Revenue", and Direct Sales are tracked solely under "Parts Revenue".
+
+Please say **"start"** to approve this calculation fix and IP update!
