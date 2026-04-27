@@ -175,6 +175,48 @@
         <!-- ==================== OPERATIONS ==================== -->
         <div class="kpi-section" id="section-operations">
             <div class="section-header"><h3><span class="icon">⚙️</span> Operations KPIs</h3></div>
+            
+            <div class="hero-grid">
+                <div class="hero-card kpi-card loading" id="op-jobs-created">
+                    <div class="hero-label">🔧 Jobs Created</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card kpi-card loading" id="op-jobs-completed">
+                    <div class="hero-label">✅ Jobs Completed</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card kpi-card loading" id="op-completion-rate">
+                    <div class="hero-label">🎯 Completion Rate</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+                <div class="hero-card kpi-card loading" id="op-jobs-open">
+                    <div class="hero-label">📂 Jobs Open (Total)</div>
+                    <div class="card-value hero-value">—</div>
+                    <div class="card-sub hero-sub"></div>
+                </div>
+            </div>
+
+            <!-- Active Pipeline (Dynamic Split) -->
+            <div class="chart-grid" style="margin-bottom: 24px;">
+                <div class="chart-card">
+                    <h4><span class="icon">🚀</span> Live Shop Floor Pipeline</h4>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Real-time breakdown of all currently open jobs.</p>
+                    <div style="display: flex; gap: 16px;">
+                        <div class="kpi-card loading" id="op-jobs-working" style="flex: 1; border-top: 4px solid var(--accent-teal); background: rgba(20,184,166,0.05); border-radius: 8px;">
+                            <div class="card-label">Jobs Working (Active Logs)</div>
+                            <div class="card-value" style="color: var(--accent-teal);">—</div>
+                        </div>
+                        <div class="kpi-card loading" id="op-jobs-not-working" style="flex: 1; border-top: 4px solid var(--accent-red); background: rgba(239,68,68,0.05); border-radius: 8px;">
+                            <div class="card-label">Jobs Not Working (Idle)</div>
+                            <div class="card-value" style="color: var(--accent-red);">—</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="kpi-grid">
                 <div class="kpi-card loading" id="op-appointments">
                     <div class="card-header"><div class="card-icon purple">📅</div></div>
@@ -191,44 +233,14 @@
                     <div class="card-label">Proposals Outstanding</div>
                     <div class="card-value">—</div><div class="card-sub"></div>
                 </div>
-                <div class="kpi-card loading" id="op-jobs-created">
-                    <div class="card-header"><div class="card-icon blue">🔧</div></div>
-                    <div class="card-label">Jobs Created</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
                 <div class="kpi-card loading" id="op-jobs-scheduled">
                     <div class="card-header"><div class="card-icon teal">📆</div></div>
                     <div class="card-label">Jobs Scheduled</div>
                     <div class="card-value">—</div><div class="card-sub"></div>
                 </div>
-                <div class="kpi-card loading" id="op-jobs-completed">
-                    <div class="card-header"><div class="card-icon green">✅</div></div>
-                    <div class="card-label">Jobs Completed</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
                 <div class="kpi-card loading" id="op-jobs-worked">
                     <div class="card-header"><div class="card-icon purple">🛠️</div></div>
                     <div class="card-label">Jobs Worked</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
-                <div class="kpi-card loading" id="op-jobs-open">
-                    <div class="card-header"><div class="card-icon amber">📂</div></div>
-                    <div class="card-label">Jobs Open (Total)</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
-                <div class="kpi-card loading" id="op-jobs-working">
-                    <div class="card-header"><div class="card-icon teal">🔧</div></div>
-                    <div class="card-label">Jobs Working</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
-                <div class="kpi-card loading" id="op-jobs-not-working">
-                    <div class="card-header"><div class="card-icon red">⏳</div></div>
-                    <div class="card-label">Jobs Not Working</div>
-                    <div class="card-value">—</div><div class="card-sub"></div>
-                </div>
-                <div class="kpi-card loading" id="op-completion-rate">
-                    <div class="card-header"><div class="card-icon green">🎯</div></div>
-                    <div class="card-label">Job Completion Rate</div>
                     <div class="card-value">—</div><div class="card-sub"></div>
                 </div>
                 <div class="kpi-card loading" id="op-booking-time">
